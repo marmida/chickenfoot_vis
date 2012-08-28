@@ -39,7 +39,9 @@
   	<p><a href="/">marmida.com</a></p>
   	<h1>Chicken Foot visualization</h1>
   </header>
-  <div id="tableau" role="main" data-bind="tableauLayout: iterTree()"></div>
+  <div id="tableau" role="main" data-bind="tableauLayout: tableau">
+    <div id="doorstop"></div>
+  </div>
   <footer>
   	<!-- hand boxes -->
   	<div class="player-hand-container" id="player1-hand-container">
@@ -60,7 +62,7 @@
     <div id="timeline">
       <button data-bind="jqButton: true, click: prevTurn">&#9664;</button>
       <span>Turn: <input data-bind="value: turn" /></span>
-    	<div id="turn-slider" data-bind="percentageSlider: turn, percentageSliderOptions: {min: 1, max: 1, range: 'min', step: 1}"></div>
+    	<!-- <div id="turn-slider" data-bind="percentageSlider: turn, percentageSliderOptions: {min: 1, max: 1, range: 'min', step: 1}"></div> -->
       <button data-bind="jqButton: true, click: nextTurn">&#9654;</button>
     </div>
   </footer>

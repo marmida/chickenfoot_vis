@@ -30,6 +30,44 @@ document.nestedMap = function(ar, fn) {
     return ret
 }
 
+/* un-nest lists while preserving depth-first order */
+Array.prototype.flatten = function() {
+    var reducer = function(last, cur) {
+        if(Array.isArray(cur)) {
+            cur = cur.reduce(reducer, [])
+        }
+        return last.concat(cur) 
+    }
+    return this.reduce(reducer, [])
+}
+
+/*  annotateParents: add 'parent' to each Tile object, indicating 
+    which Tile object is above it in the train, heading upwards,
+    towards the first spinner tile played.
+
+    About the format:
+    The first item in each list is parent to all subsequent items.
+    Any non-initial item must be a list if it has sub-items itself.
+    If it does not have any subtrees, a non-initial item can be given
+    by itself, for brevity.
+*/
+Array.prototype.annotateParents = function(parent) {
+    for (var i=0; i<this.length; i++) {
+        var elem = this[i]
+        if(i == 1) {
+            // the first elem is parent to all following
+            // we omit nested lists in the case of leaves
+            parent = this[0]
+        }
+
+        if(Array.isArray(elem)) {
+            elem.annotateParents(parent)
+        } else {
+            elem.parent = parent
+        }
+    }
+}
+
 /* slider */
 
 ko.bindingHandlers.percentageSlider = {
@@ -75,19 +113,10 @@ ko.bindingHandlers.dynamicText = {
 ko.bindingHandlers.tableauLayout = {
     'update': function (element, valueAccessor) {
         var tiles = valueAccessor()
+        console.log('tableauLayout invoked; tableau: ' + document.viewmodel.tableau().length + '; tiles: ' + tiles.length)
 
         // appropriate for our scenario: wipe out all contained elements
-        $(element).children().remove()
-
-        // add the doorstop element to stretch the tableau
-        $(element).append('<div id="doorstop"></div>')
-        $(element).find('#doorstop').css({
-            'position': 'absolute',
-            'width': '1px',
-            'height': '1px',
-            'left': tableauWidth,
-            'top': tableauHeight,
-        })
+        $(element).children().not('#doorstop').remove()
 
         // scroll the tableau
         $(element).scrollTop(tableauHeight/2 - $(element).height()/2)
@@ -221,7 +250,7 @@ var ChickenFootViewModel = function() {
     // maxTurn: the highest numbered turn in the current round
     self.maxTurn = ko.observable(1);
     /* hands: arrays of Tiles in each player's hand.  Changes every turn. */
-    self.p2Hand = ko.observableArray([
+    self.p2Hand = ko.observableArray([]
         /* todo: remove sample data
         new Tile(1, 1),
         new Tile(2, 1),
@@ -233,31 +262,12 @@ var ChickenFootViewModel = function() {
         new Tile(8, 1),
         new Tile(9, 1),
         */
-    ]);
+    );
     /* tree: nested arrays representing the hierarchy of the tableau.
-        The first item in each list is parent to all subsequent items.
-        Any non-initial item must be a list if it has sub-items itself.
-        If it does not have any subtrees, a non-initial item can be given
-        by itself, for brevity. 
-
+        
         Changes only once per round.
     */
-    self.tree = ko.observableArray([
-        /* 
-        todo: remove sample data
-        new Tile(9, 9, 1),
-        new Tile(9, 1, 2),
-        new Tile(9, 4, 3),
-        [
-            new Tile(9, 2, 4),
-            [
-                new Tile(2, 2, 7),
-                new Tile(4, 2, 6, true), // should NEED to be flipped
-                new Tile(2, 1, 5), // should not need to be flipped
-            ],
-        ],
-        */
-    ])
+    self.tableau = ko.observableArray()
 
     // Behaviors
 
@@ -272,44 +282,12 @@ var ChickenFootViewModel = function() {
 
         // populate observables that will trigger the board to fill in
         var newTree = document.nestedMap(gameData.tableau, 
-            function(elem) {new Tile(elem.a, elem.b, elem.turn, elem.inverted)})
-        self.tree(newTree)
+            function(elem) {return new Tile(elem.a, elem.b, elem.turn, elem.inverted)})
+        newTree.annotateParents()
+        self.tableau(newTree.flatten())
         self.maxTurn(7)
         self.turn(7)
     }
-
-    /* iterTreeRecur: flatten out the nested self.tree structure and 
-       annotate each Tile object with position and parent info */
-    self.iterTreeRecur = function(tree, parent) {
-        if(tree == undefined) {
-            var tree = self.tree()
-        }
-
-        // todo: can we rewrite this with something like $.map?
-        // maybe not, because it treats nested lists differently?
-        var ret = []
-        for (var i=0; i<tree.length; i++) {
-            var elem = tree[i]
-            if(i == 1) {
-                // the first elem is parent to all following
-                // we omit nested lists in the case of leaves
-                var parent = tree[0]
-            }
-
-            if(Array.isArray(elem)) {
-                ret = ret.concat(self.iterTreeRecur(elem, parent))
-            } else {
-                elem.parent = parent
-                ret.push(elem)
-            }
-        }
-        return ret
-    }
-
-    // todo: can this be combined with iterTreeRecur?
-    self.iterTree = ko.computed(function() {
-        return self.iterTreeRecur(self.tree())
-    })
 
     self.nextTurn = function() {
         var val = self.turn()
