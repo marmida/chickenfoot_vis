@@ -227,19 +227,31 @@ var tableauHeight = 1600
 var apiHost = 'http://localhost:11081'
 
 // MODELS
-var Tile = function(a, b, turn, inverted) {
+var Tile = function(a, b, turn, inverted, turnHandAdded, turnHandRemoved) {
     var self = this
     // since the whole tile changes, we don't need to make these observable
     self.a = a
     self.b = b
     self.turn = turn
     self.inverted = inverted
+    self.turnHandAdded = turnHandAdded
+    self.turnHandRemoved = turnHandRemoved
+    
+
     self.domino = function() {
        return '<div class="domino"><div class="pips' + self.a + '">' + self.a + 
             '</div><hr/><div class="pips' + self.b + '">' + self.b +'</div></div>'
     }
+
     self.isSpinner = function() {
         return self.a == self.b
+    }
+
+    self.isInHand = function() {
+        // is there a better way to get the current turn?
+        curTurn = document.viewmodel.turn()
+        return self.turnHandAdded < self.turnHandRemoved && curTurn >= self.turnHandAdded && 
+            curTurn < self.turnHandRemoved
     }
 }
 
@@ -248,28 +260,13 @@ var ChickenFootViewModel = function() {
     var self = this
     // Data
     // turn: the current turn being displayed
-    self.turn = ko.observable(1);
+    self.turn = ko.observable(1)
     // maxTurn: the highest numbered turn in the current round
-    self.maxTurn = ko.observable(1);
-    /* hands: arrays of Tiles in each player's hand.  Changes every turn. */
+    self.maxTurn = ko.observable(1)
+    // hands: arrays of Tiles in each player's hand.  Changes every round.
     self.p1Hand = ko.observableArray()
-    self.p2Hand = ko.observableArray([]
-        /* todo: remove sample data
-        new Tile(1, 1),
-        new Tile(2, 1),
-        new Tile(3, 1),
-        new Tile(4, 1),
-        new Tile(5, 1),
-        new Tile(6, 1),
-        new Tile(7, 1),
-        new Tile(8, 1),
-        new Tile(9, 1),
-        */
-    );
-    /* tree: nested arrays representing the hierarchy of the tableau.
-        
-        Changes only once per round.
-    */
+    self.p2Hand = ko.observableArray()
+    // tableau: a flat array of tiles after they've been annotated.  Changes every round.
     self.tableau = ko.observableArray()
 
     // Behaviors
@@ -281,36 +278,32 @@ var ChickenFootViewModel = function() {
          * binding updates as per http://stackoverflow.com/questions/8281875/knockout-js-update-bindings
          * Instead, we just update its values
          */
+        tileFn = function(elem) {
+            return new Tile(elem.a, elem.b, elem.turn, elem.inverted, elem.turnHandAdded, elem.turnHandRemoved)
+        }
 
         // populate observables that will trigger the board to fill in
-        var newTree = document.nestedMap(gameData.tableau, 
-            function(elem) {return new Tile(elem.a, elem.b, elem.turn, elem.inverted)})
+        var newTree = document.nestedMap(gameData.tableau, tileFn)
         newTree.annotateParents()
         self.tableau(newTree.flatten())
-        self.maxTurn(7)
-        self.turn(7)
-
-        $('#turn-slider').slider({min: 1, max: 7, value: 7})
-    }
-
-    self.changeTurn = function(turn) {
-        console.log('turn: ' + turn)
-        // updating self.turn is enough to update the tableau
-        self.turn(turn)
-        
+        self.maxTurn(gameData.maxTurn)
+        self.turn(gameData.maxTurn)
+        self.p1Hand(gameData.p1Hand.map(tileFn))
+        self.p2Hand(gameData.p2Hand.map(tileFn))
+        $('#turn-slider').slider({min: 1, max: gameData.maxTurn, value: gameData.maxTurn})
     }
 
     self.nextTurn = function() {
         var val = self.turn()
         if(val < self.maxTurn()) {
-            self.changeTurn(val+1)
+            self.turn(val+1)
         }
     }
 
     self.prevTurn = function() {
         var val = self.turn()
         if(val > 1) {
-            self.changeTurn(val-1)
+            self.turn(val-1)
         }
     }
 

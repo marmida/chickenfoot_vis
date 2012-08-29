@@ -47,14 +47,17 @@
   	<div class="player-hand-container" id="player1-hand-container">
       <div id="player1-hand">
         <div class="player-label"><span>Player 1</span></div>
+        <ul data-bind="foreach: p1Hand">
+          <li data-bind="html: domino(), visible: isInHand()"></li>
+        </ul>
       </div>
     </div>
     <div class="player-hand-container" id="player2-hand-container">
       <div id="player2-hand">
         <div class="player-label"><span>Player 2</span></div>
-          <ul data-bind="foreach: p2Hand">
-            <li data-bind="html: domino"></li>
-          </ul>
+        <ul data-bind="foreach: p2Hand">
+          <li data-bind="html: domino(), visible: isInHand()"></li>
+        </ul>
       </div>
     </div>
 
