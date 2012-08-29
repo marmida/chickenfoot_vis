@@ -111,8 +111,8 @@ ko.bindingHandlers.dynamicText = {
 };
 
 ko.bindingHandlers.tableauLayout = {
-    'update': function (element, valueAccessor) {
-        var tiles = valueAccessor()
+    'update': function (element, valueAccessor, allBindingsAccessor) {
+        var tiles = allBindingsAccessor().tableauLayout() // why not valueAccessor()
         console.log('tableauLayout invoked; tableau: ' + document.viewmodel.tableau().length + '; tiles: ' + tiles.length)
 
         // appropriate for our scenario: wipe out all contained elements
@@ -131,6 +131,8 @@ ko.bindingHandlers.tableauLayout = {
 
             // only display the tile when we're past the turn in which it was added
             tile.elem.attr('data-bind', 'visible: turn() >= ' + tile.turn)
+            // must re-bind the new element
+            ko.applyBindings(document.viewmodel, tile.elem[0])
 
             /* add two attribs to each tile: 
                * placement: angle between the center of the parent and child, in degrees; NB: 0 is right
@@ -250,6 +252,7 @@ var ChickenFootViewModel = function() {
     // maxTurn: the highest numbered turn in the current round
     self.maxTurn = ko.observable(1);
     /* hands: arrays of Tiles in each player's hand.  Changes every turn. */
+    self.p1Hand = ko.observableArray()
     self.p2Hand = ko.observableArray([]
         /* todo: remove sample data
         new Tile(1, 1),
@@ -278,7 +281,6 @@ var ChickenFootViewModel = function() {
          * binding updates as per http://stackoverflow.com/questions/8281875/knockout-js-update-bindings
          * Instead, we just update its values
          */
-        //$('#turn-slider').slider({min: 1, max: gameData.maxTurn, value: gameData.maxTurn})
 
         // populate observables that will trigger the board to fill in
         var newTree = document.nestedMap(gameData.tableau, 
@@ -287,6 +289,8 @@ var ChickenFootViewModel = function() {
         self.tableau(newTree.flatten())
         self.maxTurn(7)
         self.turn(7)
+
+        $('#turn-slider').slider({min: 1, max: 7, value: 7})
     }
 
     self.nextTurn = function() {
