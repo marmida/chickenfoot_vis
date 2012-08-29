@@ -293,19 +293,24 @@ var ChickenFootViewModel = function() {
         $('#turn-slider').slider({min: 1, max: 7, value: 7})
     }
 
+    self.changeTurn = function(turn) {
+        console.log('turn: ' + turn)
+        // updating self.turn is enough to update the tableau
+        self.turn(turn)
+        
+    }
+
     self.nextTurn = function() {
         var val = self.turn()
         if(val < self.maxTurn()) {
-            self.turn(val+1)
-            console.log('turn incremented: ' + self.turn())
+            self.changeTurn(val+1)
         }
     }
 
     self.prevTurn = function() {
         var val = self.turn()
         if(val > 1) {
-            self.turn(val-1)
-            console.log('turn incremented: ' + self.turn())
+            self.changeTurn(val-1)
         }
     }
 
