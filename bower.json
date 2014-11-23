@@ -1,0 +1,11 @@
+{
+  "name": "chickenfoot-vis",
+  "dependencies": {
+    "requirejs": "~2.1.8",
+    "jquery": "components/jquery#~2.1.1",
+    "qunit": "~1.12.0",
+    "knockout.js": "~2.3.0",
+    "sammy": "~0.7.6",
+    "jquery-ui": "~1.11.2"
+  }
+}
